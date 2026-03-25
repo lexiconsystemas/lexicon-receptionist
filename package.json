@@ -1,0 +1,34 @@
+{
+  "name": "lexicon-receptionist",
+  "version": "1.0.0",
+  "description": "AI-powered receptionist system for lead qualification and follow-up",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "twilio": "^4.19.0",
+    "openai": "^4.24.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "dotenv": "^16.3.1",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "ai",
+    "receptionist",
+    "twilio",
+    "openai",
+    "supabase",
+    "voice",
+    "sms"
+  ],
+  "author": "Lexicon Systems",
+  "license": "MIT"
+}
