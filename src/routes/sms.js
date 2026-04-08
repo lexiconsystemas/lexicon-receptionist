@@ -1,8 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const twilio = require('twilio');
 const twilioService = require('../services/twilio');
 const supabaseService = require('../services/supabase');
 const openaiService = require('../services/openai');
+
+function validateTwilioSignature(req, res, next) {
+  const signature = req.headers['x-twilio-signature'];
+  const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+  const valid = twilio.validateRequest(
+    process.env.TWILIO_AUTH_TOKEN,
+    signature,
+    url,
+    req.body
+  );
+  if (!valid) {
+    console.error('Invalid Twilio signature from:', req.ip);
+    return res.status(403).send('Forbidden');
+  }
+  next();
+}
 
 // Send SMS endpoint
 router.post('/send', async (req, res) => {
@@ -47,7 +64,7 @@ router.post('/send', async (req, res) => {
 });
 
 // Handle incoming SMS replies
-router.post('/inbound', async (req, res) => {
+router.post('/inbound', validateTwilioSignature, async (req, res) => {
   try {
     const { From, Body, MessageSid } = req.body;
     
@@ -106,19 +123,12 @@ router.post('/bulk-followup', async (req, res) => {
     
     for (const leadId of leadIds) {
       try {
-        // Get lead details
-        const leads = await supabaseService.client
-          .from('leads')
-          .select('*')
-          .eq('id', leadId)
-          .single();
-        
-        if (!leads.data) {
+        // Use service method — never call .client directly
+        const lead = await supabaseService.getLeadById(leadId);
+        if (!lead) {
           results.push({ leadId, success: false, error: 'Lead not found' });
           continue;
         }
-        
-        const lead = leads.data;
         
         // Generate or use custom message
         const message = customMessage || await openaiService.generateFollowUpSMS({

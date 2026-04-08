@@ -1,4 +1,5 @@
 const OpenAI = require('openai');
+const SYSTEM_PROMPTS = require('../utils/prompts');
 
 class OpenAIService {
   constructor() {
@@ -13,33 +14,7 @@ class OpenAIService {
 
   // Extract structured data from call transcript
   async extractLeadData(transcript) {
-    const systemPrompt = `You are a Home Services Intake Specialist AI. Your task is to extract and categorize information from customer call transcripts.
-
-Extract the following information and return as JSON:
-- name: Customer's full name (if mentioned)
-- service: Type of service requested (e.g., "plumbing", "electrical", "hvac", "general")
-- urgency: Determine urgency level based on keywords:
-  * "emergency" -> "emergency"
-  * "leaking", "burst", "fire", "flood", "no power" -> "high"
-  * "soon", "this week", "appointment" -> "medium"
-  * "when available", "quote", "information" -> "low"
-- summary: Brief summary of the customer's issue
-- qualification: "qualified" if they seem genuinely interested in services, "unqualified" if spam/sales call, "spam" if clearly spam
-
-Rules:
-- If any field is not mentioned, use null
-- Always return valid JSON format
-- Look for urgency indicators in the transcript
-- Be conservative with qualification - only mark as spam if obviously not a customer
-
-Example output:
-{
-  "name": "John Smith",
-  "service": "plumbing",
-  "urgency": "high",
-  "summary": "Customer has a burst pipe and needs immediate plumbing service",
-  "qualification": "qualified"
-}`;
+    const systemPrompt = SYSTEM_PROMPTS.LEAD_EXTRACTION;
 
     try {
       const response = await this.client.chat.completions.create({
@@ -53,7 +28,24 @@ Example output:
       });
 
       const content = response.choices[0].message.content;
-      const extractedData = JSON.parse(content);
+
+      // Extract JSON safely — GPT sometimes adds prose before/after the object
+      let extractedData;
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No JSON object found in response');
+        extractedData = JSON.parse(jsonMatch[0]);
+      } catch (parseError) {
+        console.error('Failed to parse OpenAI response:', content);
+        // Return safe defaults — do not throw, call must complete
+        extractedData = {
+          name: null,
+          service: 'general',
+          urgency: 'low',
+          summary: 'Unable to extract details from call',
+          qualification: 'unqualified'
+        };
+      }
       
       console.log('Extracted lead data:', extractedData);
       return extractedData;

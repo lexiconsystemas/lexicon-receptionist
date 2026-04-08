@@ -10,14 +10,42 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000').split(','),
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'x-api-key']
+}));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// Internal API key protection
+function requireApiKey(req, res, next) {
+  const key = req.headers['x-api-key'];
+  if (!key || key !== process.env.INTERNAL_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+// Rate limiting
+const rateLimit = require('express-rate-limit');
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'Too many requests' }
+});
+const smsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'SMS rate limit exceeded' }
+});
+app.use(limiter);
+
 // Routes
 app.use('/voice', voiceRoutes);
-app.use('/sms', smsRoutes);
-app.use('/webhooks', webhookRoutes);
+app.use('/sms/inbound', smsRoutes); // Twilio — no API key required
+app.use('/sms', smsLimiter, requireApiKey, smsRoutes);
+app.use('/webhooks', requireApiKey, webhookRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

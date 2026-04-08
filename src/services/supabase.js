@@ -6,33 +6,36 @@ class SupabaseService {
       throw new Error('Supabase credentials are required');
     }
     
+    // Use service role key for server-side operations
+    // Never use the anon key for server writes
     this.client = createClient(
       process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY
     );
   }
 
-  // Save or update lead in database
   async saveLead(leadData) {
     try {
+      // Always INSERT — never overwrite call history
+      // Repeat callers get multiple rows linked by phone_number
       const { data, error } = await this.client
         .from('leads')
-        .upsert({
+        .insert({
           phone_number: leadData.phone_number,
-          full_name: leadData.name,
-          service_requested: leadData.service,
-          urgency_level: leadData.urgency,
-          qualification_status: leadData.qualification,
-          call_transcript: leadData.transcript,
+          full_name: leadData.name || null,
+          service_requested: leadData.service || null,
+          urgency_level: leadData.urgency || 'low',
+          qualification_status: leadData.qualification || 'unqualified',
+          call_transcript: leadData.transcript || null,
+          call_sid: leadData.call_sid || null,
+          emergency_triggered: leadData.emergency_triggered || false,
+          spam_flagged: leadData.spam_flagged || false,
+          call_disposition: leadData.disposition || 'intake_complete',
           structured_data: {
-            summary: leadData.summary,
-            extracted_at: new Date().toISOString(),
-            raw_extraction: leadData
+            summary: leadData.summary || null,
+            extracted_at: new Date().toISOString()
           },
-          follow_up_sent: leadData.follow_up_sent || false
-        }, {
-          onConflict: 'phone_number',
-          ignoreDuplicates: false
+          follow_up_sent: false
         })
         .select()
         .single();
@@ -42,10 +45,27 @@ class SupabaseService {
         throw error;
       }
 
-      console.log('Lead saved successfully:', data);
+      console.log('Lead saved successfully:', data.id);
       return data;
     } catch (error) {
       console.error('Error saving lead to Supabase:', error);
+      throw error;
+    }
+  }
+
+  // Get lead by ID
+  async getLeadById(id) {
+    try {
+      const { data, error } = await this.client
+        .from('leads')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      return data || null;
+    } catch (error) {
+      console.error('Error fetching lead by ID:', error);
       throw error;
     }
   }

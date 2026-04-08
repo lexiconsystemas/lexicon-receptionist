@@ -50,12 +50,40 @@ const helpers = {
     
     const lowerText = text.toLowerCase();
     
-    // Emergency keywords
-    const emergencyWords = ['emergency', 'urgent', 'immediately', 'right now', 'asap'];
-    const safetyWords = ['fire', 'gas smell', 'burning', 'sparks', 'life threatening'];
-    
-    // High urgency keywords
-    const highWords = ['leaking', 'leak', 'flood', 'burst', 'no power', 'outage', 'broken'];
+    const emergencyWords = [
+      // Direct statements
+      'emergency', 'call 911', 'dying', 'unconscious', 'not breathing',
+      'i think i\'m dying', 'i can\'t stay awake', 'something is very wrong',
+      'i feel like passing out', 'i can\'t breathe', 'heart is racing',
+      // Neurological
+      'sudden confusion', 'can\'t speak', 'worst headache', 'vision loss',
+      'can\'t walk', 'one side numb', 'facial drooping', 'slurred speech',
+      // Cardiac
+      'chest pain', 'chest pressure', 'heart attack', 'fainting',
+      'rapid heartbeat', 'irregular heartbeat',
+      // Respiratory
+      'gasping', 'choking', 'can\'t breathe', 'stridor', 'airway',
+      'shortness of breath', 'difficulty breathing',
+      // Bleeding
+      'vomiting blood', 'coughing blood', 'severe bleeding', 'uncontrolled bleeding',
+      // Mental health
+      'suicidal', 'want to die', 'kill myself', 'self-harm', 'hurt myself',
+      // Overdose
+      'overdose', 'poisoning', 'swallowed something'
+    ];
+
+    const safetyWords = [
+      // Home services specific emergencies
+      'gas smell', 'gas leak', 'smell gas', 'carbon monoxide', 'co alarm',
+      'fire', 'sparks', 'burning smell', 'electrical fire', 'smoke inside',
+      'flooding', 'water won\'t stop', 'sewage backup',
+      'no heat', 'no power', 'power outage'
+    ];
+
+    const highWords = [
+      'leaking', 'leak', 'burst pipe', 'flood', 'broken',
+      'outage', 'not working', 'stopped working', 'urgent repair'
+    ];
     
     // Medium urgency keywords
     const mediumWords = ['soon', 'this week', 'appointment', 'need help', 'not working'];

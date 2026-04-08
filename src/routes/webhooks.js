@@ -10,13 +10,9 @@ router.post('/make', async (req, res) => {
     console.log('🔗 Make.com webhook received:', { leadId, event });
     
     // Get lead details from database
-    const lead = await supabaseService.client
-      .from('leads')
-      .select('*')
-      .eq('id', leadId)
-      .single();
+    const lead = await supabaseService.getLeadById(leadId);
     
-    if (!lead.data) {
+    if (!lead) {
       return res.status(404).json({
         error: 'Lead not found',
         leadId: leadId
@@ -25,7 +21,7 @@ router.post('/make', async (req, res) => {
     
     // Prepare webhook payload for Make.com
     const webhookPayload = {
-      lead: lead.data,
+      lead: lead,
       event: event || 'lead_created',
       timestamp: new Date().toISOString(),
       source: 'lexicon-receptionist'
@@ -89,20 +85,8 @@ router.post('/external', async (req, res) => {
     // Store webhook log (you could create a webhooks table)
     console.log('Webhook logged:', webhookLog);
     
-    // Handle specific service integrations
-    switch (service) {
-      case 'notion':
-        await handleNotionWebhook(data);
-        break;
-      case 'slack':
-        await handleSlackWebhook(data);
-        break;
-      case 'zapier':
-        await handleZapierWebhook(data);
-        break;
-      default:
-        console.log(`No specific handler for service: ${service}`);
-    }
+    // Integration handlers — implement when needed
+    console.log(`Webhook received from ${service} — no handler configured yet`);
     
     res.json({
       success: true,
@@ -120,23 +104,6 @@ router.post('/external', async (req, res) => {
   }
 });
 
-// Handler for Notion webhooks
-async function handleNotionWebhook(data) {
-  console.log('📝 Processing Notion webhook:', data);
-  // Add Notion-specific logic here
-}
-
-// Handler for Slack webhooks
-async function handleSlackWebhook(data) {
-  console.log('💬 Processing Slack webhook:', data);
-  // Add Slack-specific logic here
-}
-
-// Handler for Zapier webhooks
-async function handleZapierWebhook(data) {
-  console.log('⚡ Processing Zapier webhook:', data);
-  // Add Zapier-specific logic here
-}
 
 // Webhook verification endpoint
 router.get('/verify', (req, res) => {
